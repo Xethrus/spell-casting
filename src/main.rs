@@ -15,15 +15,16 @@ fn get_current_dir() -> Result<Vec<std::fs::DirEntry>> {
     Ok(current_dir_contents)
 }
 
-fn get_file_name(index: i32, current_dir_result: Result<Vec<std::fs::DirEntry>>) -> OsString {
+fn get_file_name(index: usize, current_dir_result: Result<Vec<std::fs::DirEntry>>) -> OsString {
     match current_dir_result {
         Ok(entries) => {
             if let Some(entry) = entries.get(index) {
                 let file_name = entry.file_name();
+                return file_name;
             } else {
-                return Err(anyhow::anyhow!("no entry found at index"));
+                //WTF do i do here D:  
             }
-        },
+        }
         Err(e) => {
             println!("failed to read DirEntry: {:?}", e); 
         }
