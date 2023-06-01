@@ -15,11 +15,12 @@ fn get_current_dir() -> Result<Vec<std::fs::DirEntry>> {
     Ok(current_dir_contents)
 }
 
-fn get_file_name(index: usize, current_dir: Vec<std::fs::DirEntry>) -> Result<OsString> {
+fn get_file_name(index: usize, current_dir: Vec<std::fs::DirEntry>) -> Result<String> {
     let current_dir_entries = get_current_dir()?;
     let entry = current_dir_entries.get(index).ok_or(anyhow::anyhow!("index out of bounds"))?;
     let file_name = entry.file_name();
-    Ok(file_name)
+    let file_name_string = file_name.into_string().map_err(|_| anyhow::anyhow!("filename is not valid utf8"))?;
+    Ok(file_name_string)
 }
 
 fn display_current_dir() -> Result<()> {
