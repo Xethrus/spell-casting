@@ -15,20 +15,11 @@ fn get_current_dir() -> Result<Vec<std::fs::DirEntry>> {
     Ok(current_dir_contents)
 }
 
-fn get_file_name(index: usize, current_dir_result: Result<Vec<std::fs::DirEntry>>) -> OsString {
-    match current_dir_result {
-        Ok(entries) => {
-            if let Some(entry) = entries.get(index) {
-                let file_name = entry.file_name();
-                return file_name;
-            } else {
-                //WTF do i do here D:  
-            }
-        }
-        Err(e) => {
-            println!("failed to read DirEntry: {:?}", e); 
-        }
-    }
+fn get_file_name(index: usize, current_dir: Vec<std::fs::DirEntry>) -> Result<OsString> {
+    let current_dir_entries = get_current_dir()?;
+    let entry = current_dir_entries.get(index).ok_or(anyhow::anyhow!("index out of bounds"))?;
+    let file_name = entry.file_name();
+    Ok(file_name)
 }
 
 fn display_current_dir() -> Result<()> {
@@ -42,7 +33,7 @@ fn display_current_dir() -> Result<()> {
            LinearLayout::vertical()
             .child(TextView::new("view").h_align(HAlign::Center))
             .child(DummyView.fixed_height(1))
-            .child(TextView::new(get_file_name(current_index, current_dir)))
+            .child(TextView::new(get_file_name(current_index, get_current_dir()?)?))
             .fixed_width(30),
         )
         .button("exit", |s| s.quit())
