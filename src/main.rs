@@ -8,12 +8,12 @@ use std::path::PathBuf;
 use anyhow::{Result};
 
 fn get_current_dir() -> Result<Vec<std::fs::DirEntry>> {
-    let mut current_dir_contents: Vec<std::fs::DirEntry> = Vec::new();
+    let mut current_dir_entries: Vec<std::fs::DirEntry> = Vec::new();
     for entry_result in read_dir(".")? {
         let entry = entry_result?;
-        current_dir_contents.push(entry);
+        current_dir_entries.push(entry);
     }
-    Ok(current_dir_contents)
+    Ok(current_dir_entries)
 }
 
 fn get_file_name(index: usize) -> Result<String> {
@@ -30,6 +30,14 @@ fn get_file_path(index: usize) -> Result<PathBuf> {
     let file_path = entry.path();
     Ok(file_path)
 }
+
+fn is_file_or_dir(index: usize) -> Result<Metadata> {
+    let current_dir_entries = get_current_dir()?;
+    let entry = current_dir_entries.get(index).ok_or(anyhow::anyhow!("index out of bounds"))?;
+    let entry_metadata = entry.metadata();
+    if entry_metadata
+}
+
 //fn entry_exists(index: usize) -> Result<bool> {
 //    if get_current_dir()? {
 //        return true;
@@ -37,78 +45,53 @@ fn get_file_path(index: usize) -> Result<PathBuf> {
 //        return false;
 //    }
 //}
-//
+
+
 fn display_current_dir() -> Result<()> {
+    
     let mut siv = cursive::default();
-    let mut select_view = SelectView::new()
-        .on_select(|s, item| {
-            s.add_layer(Dialog::text(format!("You selected: {}", item)).button("Ok", |s| s.quit()));
-        })
-        .with_name("menu");
+    let mut file_display = SelectView::new().h_align(HAlign::Center);
 
     let items = get_current_dir()?;
+
     for (i , item) in items.iter().enumerate() {
         let file_name = get_file_name(i)?; // Assuming this function returns a Result<String, Error>
-        select_view.get_mut().add_item(file_name, i);
+       file_display.add_item(file_name, i);
     }
 
-    siv.add_layer(
-        Dialog::around(select_view)
-            .title("Files")
-            .button("Exit", |s| s.quit())
-            .fixed_width(30),
-    );
+    file_display.set_on_submit(|s, file| {
+        s.pop_layer();
+        let text = format!("you have selected {}", file);
+        s.add_layer(
+            Dialog::around(TextView::new(text)).button("Quit", |s| s.quit()),
+        );
+    });
 
+    siv.add_layer(Dialog::around(file_display).title("file display"));
     siv.run();
     Ok(())
 }
-//
-//fn display_current_dir() -> Result<()> { //let mut current_dir: Vec<std::fs::DirEntry> = Vec::new();
-//    let mut siv = cursive::default();
-//    let mut select_view = SelectView::new()
-//        .on_select(|s, item| {
-//            s.add_layer(Dialog::text(format!("you selected: {}", item)).button("Ok", |s| s.quit()));
-//        })
-//        .with_name("menu");
-//
-//    
-//    let items = get_current_dir()?;
-//    for (i , item) in items.iter().enumerate() {
-//        select_view.add_item(get_file_name(i)?, i);
-//    }
-//    
-//
-//    siv.add_layer(
-//        Dialog::around(select_view).title("files")
-//        .button("exit", |s| s.quit())
-//        .fixed_width(30),
-//    );
-//        //.h_align(HAlign::Center),
-//    siv.run();
-//    Ok(())
-//}
-//
+
+fn testing() -> () {
+    let mut siv = cursive::default();
+    let mut time_select = SelectView::new().h_align(HAlign::Center);
+    time_select.add_item("Short", 1);
+    time_select.add_item("Medium", 5);
+    time_select.add_item("Long", 10);
+
+    time_select.set_on_submit(|s, time| {
+        s.pop_layer();
+        let text = format!("You will wait for {} minutes...", time);
+        s.add_layer(
+            Dialog::around(TextView::new(text)).button("Quit", |s| s.quit()),
+        );
+    });
+
+    siv.add_layer(Dialog::around(time_select).title("How long is your wait?"));
+    siv.run();
+}
 
 fn main() {
-    //cursive root
-//    let mut siv = cursive::default();
-//    let text = "nothing right now"; 
-    //dialog with quit
     display_current_dir();
-//    siv.add_layer(
-//        Dialog::around(
-//            LinearLayout::vertical()
-//                .child(TextView::new("view").h_align(HAlign::Center))
-//                .child(DummyView.fixed_height(1))
-//                .child(TextView::new(text))
-//                .child(TextView::new(text).scrollable())
-//                .child(TextView::new(text).scrollable())
-//                .child(TextView::new(text).scrollable())
-//                .fixed_width(30),
-//        )
-//        .button("Quit", |s| s.quit())
-//        .h_align(HAlign::Center),
-//    );
-//    //starts the event loop
-//    siv.run();
+//    testing();
 }
