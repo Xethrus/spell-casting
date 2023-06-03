@@ -3,7 +3,9 @@ use cursive::views::{Dialog, DummyView, LinearLayout, SelectView, TextView};
 use cursive::align::HAlign;
 use cursive::Cursive;
 
+use std::env::set_current_dir;
 use std::fs::read_dir;
+use std::fs::Metadata;
 use std::path::PathBuf;
 use anyhow::{Result};
 
@@ -31,11 +33,23 @@ fn get_file_path(index: usize) -> Result<PathBuf> {
     Ok(file_path)
 }
 
-fn is_file_or_dir(index: usize) -> Result<Metadata> {
-    let current_dir_entries = get_current_dir()?;
-    let entry = current_dir_entries.get(index).ok_or(anyhow::anyhow!("index out of bounds"))?;
+fn is_dir_then_enter(index: usize) -> Result<Metadata> {
+    let dir_entries = get_current_dir()?;
+    let entry = dir_entries.get(index).ok_or(anyhow::anyhow!("index out of bounds"))?;
     let entry_metadata = entry.metadata();
-    if entry_metadata
+    if entry_metadata?.is_dir() {
+        match set_current_dir(entry.path()) {
+            Ok => {
+                println!("entred directory");
+            }
+            _ => {
+                println!("operation failed");
+            }
+        }
+    } else {
+        !
+    }
+    Ok(entry_metadata?)
 }
 
 //fn entry_exists(index: usize) -> Result<bool> {
@@ -47,9 +61,9 @@ fn is_file_or_dir(index: usize) -> Result<Metadata> {
 //}
 
 
-fn display_current_dir() -> Result<()> {
+fn display_current_dir(siv: &mut cursive::Cursive) -> Result<()> {
     
-    let mut siv = cursive::default();
+   // let mut siv = cursive::default();
     let mut file_display = SelectView::new().h_align(HAlign::Center);
 
     let items = get_current_dir()?;
@@ -62,13 +76,13 @@ fn display_current_dir() -> Result<()> {
     file_display.set_on_submit(|s, file| {
         s.pop_layer();
         let text = format!("you have selected {}", file);
+        is_dir_then_enter(*file);
         s.add_layer(
             Dialog::around(TextView::new(text)).button("Quit", |s| s.quit()),
         );
     });
 
     siv.add_layer(Dialog::around(file_display).title("file display"));
-    siv.run();
     Ok(())
 }
 
@@ -92,6 +106,8 @@ fn testing() -> () {
 }
 
 fn main() {
-    display_current_dir();
+    let mut siv = cursive::default();
+    display_current_dir(&mut Cursive);
+    siv.run();
 //    testing();
 }
