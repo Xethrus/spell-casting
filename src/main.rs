@@ -32,25 +32,25 @@ fn get_file_path(index: usize) -> Result<PathBuf> {
     let file_path = entry.path();
     Ok(file_path)
 }
+//fn is_dir_then_enter(index: usize) -> Result<Metadata> {
+//    let dir_entries = get_current_dir()?;
+//    let entry = dir_entries.get(index).ok_or(anyhow::anyhow!("index out of bounds"))?;
+//    let entry_metadata = entry.metadata();
+//    if entry_metadata?.is_dir() {
+//        match set_current_dir(entry.path()) {
+//            Ok => {
+//                println!("entred directory");
+//            }
+//            _ => {
+//                println!("operation failed");
+//            }
+//        }
+//    } else {
+//        !
+//    }
+//    Ok(entry_metadata?)
+//}
 
-fn is_dir_then_enter(index: usize) -> Result<Metadata> {
-    let dir_entries = get_current_dir()?;
-    let entry = dir_entries.get(index).ok_or(anyhow::anyhow!("index out of bounds"))?;
-    let entry_metadata = entry.metadata();
-    if entry_metadata?.is_dir() {
-        match set_current_dir(entry.path()) {
-            Ok => {
-                println!("entred directory");
-            }
-            _ => {
-                println!("operation failed");
-            }
-        }
-    } else {
-        !
-    }
-    Ok(entry_metadata?)
-}
 
 //fn entry_exists(index: usize) -> Result<bool> {
 //    if get_current_dir()? {
@@ -61,53 +61,59 @@ fn is_dir_then_enter(index: usize) -> Result<Metadata> {
 //}
 
 
-fn display_current_dir(siv: &mut cursive::Cursive) -> Result<()> {
+//fn display_current_dir(siv: &mut cursive::Cursive) -> Result<()> {
+//    
+//   // let mut siv = cursive::default();
+//    let mut file_display = SelectView::new().h_align(HAlign::Center);
+//
+//    let items = get_current_dir()?;
+//
+//    for (i , item) in items.iter().enumerate() {
+//        let file_name = get_file_name(i)?; // Assuming this function returns a Result<String, Error>
+//       file_display.add_item(file_name, i);
+//    }
+//
+//    file_display.set_on_submit(|s, file| {
+//        s.pop_layer();
+//        let text = format!("you have selected {}", file);
+//        is_dir_then_enter(*file);
+//        s.add_layer(
+//            Dialog::around(TextView::new(text)).button("Quit", |s| s.quit()),
+//        );
+//    });
+//
+//    siv.add_layer(Dialog::around(file_display).title("file display"));
+//    Ok(())
+//}
+//
+
+fn display_directory(session: &mut Cursive) {
+    session.pop_layer();
     
-   // let mut siv = cursive::default();
-    let mut file_display = SelectView::new().h_align(HAlign::Center);
+    let mut display = SelectView::new().h_align(HAlign::Center);
+    let content = get_current_dir().unwrap();  //need to make this sweeter... syntactically 
 
-    let items = get_current_dir()?;
-
-    for (i , item) in items.iter().enumerate() {
-        let file_name = get_file_name(i)?; // Assuming this function returns a Result<String, Error>
-       file_display.add_item(file_name, i);
+    for(i , partition) in content.iter().enumerate() {
+        let file_name = get_file_name(i).unwrap(); //need to make this sweeter... syntactically 
+        display.add_item(file_name, i);
     }
+    display.set_on_select(testing) //Goal: to get this to behave like a .button() where I could
+                                   //pass the name of the function and it calls it with the &mut
+                                   //cursive object automatically
 
-    file_display.set_on_submit(|s, file| {
-        s.pop_layer();
-        let text = format!("you have selected {}", file);
-        is_dir_then_enter(*file);
-        s.add_layer(
-            Dialog::around(TextView::new(text)).button("Quit", |s| s.quit()),
-        );
-    });
-
-    siv.add_layer(Dialog::around(file_display).title("file display"));
-    Ok(())
+    session.add_layer(Dialog::around(display).title("file explorer"));
+}
+fn testing(session: &mut Cursive) {
+    session.pop_layer();
+    session.add_layer(Dialog::text("did this change!?"));
 }
 
-fn testing() -> () {
-    let mut siv = cursive::default();
-    let mut time_select = SelectView::new().h_align(HAlign::Center);
-    time_select.add_item("Short", 1);
-    time_select.add_item("Medium", 5);
-    time_select.add_item("Long", 10);
-
-    time_select.set_on_submit(|s, time| {
-        s.pop_layer();
-        let text = format!("You will wait for {} minutes...", time);
-        s.add_layer(
-            Dialog::around(TextView::new(text)).button("Quit", |s| s.quit()),
-        );
-    });
-
-    siv.add_layer(Dialog::around(time_select).title("How long is your wait?"));
-    siv.run();
-}
 
 fn main() {
-    let mut siv = cursive::default();
-    display_current_dir(&mut Cursive);
-    siv.run();
+    let mut session = cursive::default();
+    session.add_layer(Dialog::text("Would you like to enter your files?")
+        .button("Yes", display_directory)
+    );
+    session.run();
 //    testing();
 }
