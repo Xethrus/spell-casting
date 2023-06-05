@@ -5,6 +5,7 @@ use cursive::Cursive;
 
 use std::env::set_current_dir;
 use std::fs::read_dir;
+use std::fs::read_to_string;
 use std::fs::Metadata;
 use std::path::PathBuf;
 use anyhow::{Result};
@@ -26,67 +27,6 @@ fn get_file_name(index: usize) -> Result<String> {
     Ok(file_name_string)
 }
 
-fn get_file_path(index: usize) -> Result<PathBuf> {
-    let dir_entries = get_current_dir()?;
-    let entry = dir_entries.get(index).ok_or(anyhow::anyhow!("index out of bounds"))?;
-    let file_path = entry.path();
-    Ok(file_path)
-}
-//fn is_dir_then_enter(index: usize) -> Result<Metadata> {
-//    let dir_entries = get_current_dir()?;
-//    let entry = dir_entries.get(index).ok_or(anyhow::anyhow!("index out of bounds"))?;
-//    let entry_metadata = entry.metadata();
-//    if entry_metadata?.is_dir() {
-//        match set_current_dir(entry.path()) {
-//            Ok => {
-//                println!("entred directory");
-//            }
-//            _ => {
-//                println!("operation failed");
-//            }
-//        }
-//    } else {
-//        !
-//    }
-//    Ok(entry_metadata?)
-//}
-
-
-//fn entry_exists(index: usize) -> Result<bool> {
-//    if get_current_dir()? {
-//        return true;
-//    } else {
-//        return false;
-//    }
-//}
-
-
-//fn display_current_dir(siv: &mut cursive::Cursive) -> Result<()> {
-//    
-//   // let mut siv = cursive::default();
-//    let mut file_display = SelectView::new().h_align(HAlign::Center);
-//
-//    let items = get_current_dir()?;
-//
-//    for (i , item) in items.iter().enumerate() {
-//        let file_name = get_file_name(i)?; // Assuming this function returns a Result<String, Error>
-//       file_display.add_item(file_name, i);
-//    }
-//
-//    file_display.set_on_submit(|s, file| {
-//        s.pop_layer();
-//        let text = format!("you have selected {}", file);
-//        is_dir_then_enter(*file);
-//        s.add_layer(
-//            Dialog::around(TextView::new(text)).button("Quit", |s| s.quit()),
-//        );
-//    });
-//
-//    siv.add_layer(Dialog::around(file_display).title("file display"));
-//    Ok(())
-//}
-//
-
 fn display_directory(session: &mut Cursive) {
     session.pop_layer();
     
@@ -97,15 +37,41 @@ fn display_directory(session: &mut Cursive) {
         let file_name = get_file_name(i).unwrap(); //need to make this sweeter... syntactically 
         display.add_item(file_name, i);
     }
-    display.set_on_select(testing); //Goal: to get this to behave like a .button() where I could
-                                   //pass the name of the function and it calls it with the &mut
-                                   //cursive object automatically
+    display.set_on_submit(file_or_dir); 
 
-    session.add_layer(Dialog::around(display).title("file explorer"));
+    session.add_layer(Dialog::around(display).title("file explorer")
+        .button("quit", |session| session.quit())
+    );
 }
+
+fn file_or_dir(session: &mut Cursive, index_from_selection: &usize) {
+    //I need the entry, I get the index so i can make due 
+    let content = get_current_dir().unwrap();
+    let entry_in_question = &content[*index_from_selection];
+    let entry_metadata = entry_in_question.metadata().unwrap();
+
+    if entry_metadata.is_dir() {
+        set_current_dir(entry_in_question.path());
+        display_directory(session);
+    } else if entry_metadata.is_file() {
+        display_file(session, entry_in_question);
+    }
+}
+
+fn display_file(session: &mut Cursive, entry: &std::fs::DirEntry) {
+    let file_contents = read_to_string(entry.path())
+        .expect("file was not readable");
+    session.pop_layer();
+    session.add_layer(Dialog::text(file_contents)
+        .button("exit", display_directory)
+    );
+}
+
 fn testing(session: &mut Cursive, _needed_param: &usize) {
     session.pop_layer();
-    session.add_layer(Dialog::text("did this change!?"));
+    session.add_layer(Dialog::text(_needed_param.to_string())
+        .button("quit", display_directory)
+    );
 }
 
 
@@ -113,6 +79,7 @@ fn main() {
     let mut session = cursive::default();
     session.add_layer(Dialog::text("Would you like to enter your files?")
         .button("Yes", display_directory)
+        .button("No", |session| session.quit())
     );
     session.run();
 //    testing();
