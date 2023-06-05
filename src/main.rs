@@ -97,13 +97,13 @@ fn display_directory(session: &mut Cursive) {
         let file_name = get_file_name(i).unwrap(); //need to make this sweeter... syntactically 
         display.add_item(file_name, i);
     }
-    display.set_on_select(testing(session)): //Goal: to get this to behave like a .button() where I could
+    display.set_on_select(testing); //Goal: to get this to behave like a .button() where I could
                                    //pass the name of the function and it calls it with the &mut
                                    //cursive object automatically
 
     session.add_layer(Dialog::around(display).title("file explorer"));
 }
-fn testing(session: &mut Cursive) {
+fn testing(session: &mut Cursive, _needed_param: &usize) {
     session.pop_layer();
     session.add_layer(Dialog::text("did this change!?"));
 }
