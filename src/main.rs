@@ -3,6 +3,7 @@ use cursive::views::{Dialog, DummyView, LinearLayout, SelectView, TextView};
 use cursive::align::HAlign;
 use cursive::Cursive;
 
+use std::path::Path;
 use std::env::set_current_dir;
 use std::fs::read_dir;
 use std::fs::read_to_string;
@@ -40,6 +41,7 @@ fn display_directory(session: &mut Cursive) {
     display.set_on_submit(file_or_dir); 
 
     session.add_layer(Dialog::around(display).title("file explorer")
+        .button("..", parent_dir)
         .button("quit", |session| session.quit())
     );
 }
@@ -65,6 +67,12 @@ fn display_file(session: &mut Cursive, entry: &std::fs::DirEntry) {
     session.add_layer(Dialog::text(file_contents)
         .button("exit", display_directory)
     );
+}
+
+fn parent_dir(session: &mut Cursive) {
+    let parent_dir = Path::new("..");
+    set_current_dir(parent_dir);
+    display_directory(session);
 }
 
 fn testing(session: &mut Cursive, _needed_param: &usize) {
