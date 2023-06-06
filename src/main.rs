@@ -48,6 +48,10 @@ fn display_directory(session: &mut Cursive) -> Result<()> {
     Ok(())
 }
 
+fn display_directory_closure(session: &mut Cursive) {
+    display_directory(session);
+}
+
 fn file_or_dir(session: &mut Cursive, index_from_selection: &usize) -> Result<()> {
     //I need the entry, I get the index so i can make due 
     let content = get_current_dir()?;
@@ -71,9 +75,13 @@ fn display_file(session: &mut Cursive, entry: &std::fs::DirEntry) -> Result<()> 
         .expect("file was not readable");
     session.pop_layer();
     session.add_layer(Dialog::text(file_contents)
-        .button("exit", display_directory)
+        .button("exit", display_directory_closure)
     );
     Ok(())
+}
+
+fn display_file_closure(session: &mut Cursive, entry: &std::fs::DirEntry) {
+    display_file(session, entry);
 }
 
 fn parent_dir(session: &mut Cursive) {
@@ -85,7 +93,7 @@ fn parent_dir(session: &mut Cursive) {
 fn testing(session: &mut Cursive, _needed_param: &usize) {
     session.pop_layer();
     session.add_layer(Dialog::text(_needed_param.to_string())
-        .button("quit", display_directory)
+        .button("quit", display_directory_closure)
     );
 }
 
@@ -93,7 +101,7 @@ fn testing(session: &mut Cursive, _needed_param: &usize) {
 fn main() {
     let mut session = cursive::default();
     session.add_layer(Dialog::text("Would you like to enter your files?")
-        .button("Yes", display_directory)
+        .button("Yes", display_directory_closure)
         .button("No", |session| session.quit())
     );
     session.run();
