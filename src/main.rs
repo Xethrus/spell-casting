@@ -9,7 +9,7 @@ use std::fs::read_dir;
 use std::fs::read_to_string;
 use std::fs::Metadata;
 use std::path::PathBuf;
-use anyhow::{Result};
+use anyhow::{Result, Context};
 
 fn get_current_dir() -> Result<Vec<std::fs::DirEntry>> {
     let mut current_dir_entries: Vec<std::fs::DirEntry> = Vec::new();
@@ -28,14 +28,14 @@ fn get_file_name(index: usize) -> Result<String> {
     Ok(file_name_string)
 }
 
-fn display_directory(session: &mut Cursive) {
+fn display_directory(session: &mut Cursive) -> Result<()> {
     session.pop_layer();
     
     let mut display = SelectView::new().h_align(HAlign::Center);
-    let content = get_current_dir().unwrap();  //need to make this sweeter... syntactically 
+    let content = get_current_dir()?;  //need to make this sweeter... syntactically 
 
     for(i , partition) in content.iter().enumerate() {
-        let file_name = get_file_name(i).unwrap(); //need to make this sweeter... syntactically 
+        let file_name = get_file_name(i)?; //need to make this sweeter... syntactically 
         display.add_item(file_name, i);
     }
     display.set_on_submit(file_or_dir); 
@@ -44,29 +44,36 @@ fn display_directory(session: &mut Cursive) {
         .button("..", parent_dir)
         .button("quit", |session| session.quit())
     );
+
+    Ok(())
 }
 
-fn file_or_dir(session: &mut Cursive, index_from_selection: &usize) {
+fn file_or_dir(session: &mut Cursive, index_from_selection: &usize) -> Result<()> {
     //I need the entry, I get the index so i can make due 
-    let content = get_current_dir().unwrap();
-    let entry_in_question = &content[*index_from_selection];
-    let entry_metadata = entry_in_question.metadata().unwrap();
+    let content = get_current_dir()?;
+    let entry_in_question = content.get(*index_from_selection).context("unable to locate entry")?;
+    let entry_metadata = entry_in_question.metadata().context("failed to retrieve metadata")?;
 
     if entry_metadata.is_dir() {
-        set_current_dir(entry_in_question.path());
-        display_directory(session);
+        set_current_dir(entry_in_question.path()).context(format!("Failed to set current directory to {:?}", entry_in_question.path()))?;
+        display_directory(session).context("Failed to display directory")?;
     } else if entry_metadata.is_file() {
-        display_file(session, entry_in_question);
+        display_file(session, entry_in_question).context(format!("Failed to display file {:?}", entry_in_question))?;
+    } else {
+        return Err(anyhow::anyhow!("Entry not a file or directory"));
     }
+
+    Ok(())
 }
 
-fn display_file(session: &mut Cursive, entry: &std::fs::DirEntry) {
+fn display_file(session: &mut Cursive, entry: &std::fs::DirEntry) -> Result<()> {
     let file_contents = read_to_string(entry.path())
         .expect("file was not readable");
     session.pop_layer();
     session.add_layer(Dialog::text(file_contents)
         .button("exit", display_directory)
     );
+    Ok(())
 }
 
 fn parent_dir(session: &mut Cursive) {
