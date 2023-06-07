@@ -1,4 +1,5 @@
 use cursive::align::HAlign;
+use std::ffi::OsString;
 use cursive::views::{Dialog, SelectView};
 use cursive::Cursive;
 
@@ -111,14 +112,14 @@ fn display_file(session: &mut Cursive, entry: &std::fs::DirEntry) -> Result<()> 
     Ok(())
 }
 
-fn edit_file(_session: &mut Cursive, file_path: std::path::PathBuf) {
-    std::process::Command::new(file_path)
-        .arg("vim")
-        .arg("file")
+fn edit_file(session: &mut Cursive, file_path: std::path::PathBuf) {
+    std::process::Command::new("vim")
+        .arg(file_path.to_string_lossy().as_ref())
         .spawn()
         .expect("Error: failed to run editor")
         .wait()
         .expect("Error: Editor returned non-zero exit code");
+    display_directory(session)
 }
 
 fn parent_dir(session: &mut Cursive) {
