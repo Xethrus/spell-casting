@@ -65,7 +65,8 @@ fn display_directory(session: &mut Cursive) {
         Dialog::around(display)
             .title("file explorer")
             .button("..", parent_dir)
-            .button("quit", |session| session.quit()),
+            .button("quit", |session| session.quit())
+            .padding(cursive::view::Margins::lrtb(6, 6, 6, 6)),
     );
 }
 
@@ -112,8 +113,10 @@ fn main() {
     let mut session = cursive::default();
     session.add_layer(
         Dialog::text("Would you like to enter your files?")
+            .title("Spell Casting")
             .button("Yes", display_directory)
-            .button("No", |session| session.quit()),
+            .button("No", |session| session.quit())
+            .padding(cursive::view::Margins::lrtb(6, 6, 6, 6)),
     );
     session.run();
     //    testing();
