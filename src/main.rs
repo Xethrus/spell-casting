@@ -1,15 +1,12 @@
 use cursive::align::HAlign;
-use cursive::traits::*;
-use cursive::views::{Dialog, DummyView, LinearLayout, SelectView, TextView};
+use cursive::views::{Dialog, SelectView};
 use cursive::Cursive;
 
 use anyhow::{Context, Result};
 use std::env::set_current_dir;
 use std::fs::read_dir;
 use std::fs::read_to_string;
-use std::fs::Metadata;
 use std::path::Path;
-use std::path::PathBuf;
 
 fn get_current_dir() -> Vec<std::fs::DirEntry> {
     let mut current_dir_entries: Vec<std::fs::DirEntry> = Vec::new();
@@ -22,7 +19,7 @@ fn get_current_dir() -> Vec<std::fs::DirEntry> {
         }
     };
     for entry_result in entries {
-        let entry = match entry_result {
+        match entry_result {
             Ok(entry) => current_dir_entries.push(entry),
             Err(e) => {
                 eprintln!("failed to read dir entry: {:?}", e);
@@ -50,8 +47,8 @@ fn display_directory(session: &mut Cursive) {
 
     let mut display = SelectView::new().h_align(HAlign::Center);
 
-    for (i, partition) in get_current_dir().iter().enumerate() {
-        let file_name = match get_file_name(i) {
+    for (i, _partition) in get_current_dir().iter().enumerate() {
+        match get_file_name(i) {
             Ok(file_name) => display.add_item(file_name, i),
             Err(e) => {
                 eprintln!("failed to get file name at index {}, error: {:?}", i, e);
@@ -88,24 +85,50 @@ fn file_or_dir(session: &mut Cursive, index_from_selection: &usize) -> Result<()
         display_directory(session);
         Ok(())
     } else if entry_metadata.is_file() {
-        display_file(session, entry_in_question);
+        display_file(session, entry_in_question)?;
         Ok(())
     } else {
         return Err(anyhow::anyhow!("Entry not a file or directory"));
     }
-
 }
 
 fn display_file(session: &mut Cursive, entry: &std::fs::DirEntry) -> Result<()> {
-    let file_contents = read_to_string(entry.path()).expect("file was not readable");
+    let file_contents = match read_to_string(entry.path()) {
+        Ok(content) => content,
+        Err(e) => {
+            eprintln!("failed to read file contents to string {}", e);
+            let failed_output = String::from("file failed to be displayed");
+            failed_output
+        }
+    };
+    let file_path = entry.path();
     session.pop_layer();
-    session.add_layer(Dialog::text(file_contents).button("exit", display_directory));
+    session.add_layer(
+        Dialog::text(file_contents)
+            .button("edit", move |session| edit_file(session, file_path.to_owned()))
+            .button("exit", display_directory),
+    );
     Ok(())
+}
+
+fn edit_file(_session: &mut Cursive, file_path: std::path::PathBuf) {
+    std::process::Command::new(file_path)
+        .arg("vim")
+        .arg("file")
+        .spawn()
+        .expect("Error: failed to run editor")
+        .wait()
+        .expect("Error: Editor returned non-zero exit code");
 }
 
 fn parent_dir(session: &mut Cursive) {
     let parent_dir = Path::new("..");
-    set_current_dir(parent_dir);
+    match set_current_dir(parent_dir) {
+        Ok(parent_dir) => parent_dir,
+        Err(e) => {
+            eprintln!("failed to set parent dir {}", e);
+        }
+    };
     display_directory(session);
 }
 
