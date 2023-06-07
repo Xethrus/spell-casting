@@ -18,7 +18,7 @@ fn get_current_dir() -> Vec<std::fs::DirEntry> {
         Ok(entries) => entries,
         Err(e) => {
             eprintln!("failed to read current dir: {:?}", e);
-            return;
+            return current_dir_entries;
         }
     };
     for entry_result in entries {
@@ -85,12 +85,14 @@ fn file_or_dir(session: &mut Cursive, index_from_selection: &usize) -> Result<()
             entry_in_question.path()
         ))?;
         display_directory(session);
+        Ok(())
     } else if entry_metadata.is_file() {
+        display_file(session, entry_in_question);
+        Ok(())
     } else {
         return Err(anyhow::anyhow!("Entry not a file or directory"));
     }
 
-    Ok(())
 }
 
 fn display_file(session: &mut Cursive, entry: &std::fs::DirEntry) -> Result<()> {
@@ -104,11 +106,6 @@ fn parent_dir(session: &mut Cursive) {
     let parent_dir = Path::new("..");
     set_current_dir(parent_dir);
     display_directory(session);
-}
-
-fn testing(session: &mut Cursive, _needed_param: &usize) {
-    session.pop_layer();
-    session.add_layer(Dialog::text(_needed_param.to_string()).button("quit", display_directory));
 }
 
 fn main() {
