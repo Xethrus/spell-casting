@@ -1,7 +1,11 @@
 use cursive::align::HAlign;
 use std::ffi::OsString;
-use cursive::views::{Dialog, SelectView};
+use cursive::views::{Dialog, SelectView, TextView};
 use cursive::Cursive;
+use cursive::views::LinearLayout;
+use cursive::view::Scrollable;
+use cursive::direction::Orientation;
+
 
 use anyhow::{Context, Result};
 use std::env::set_current_dir;
@@ -57,22 +61,62 @@ fn display_directory(session: &mut Cursive) {
             }
         };
     }
+    display.set_on_select(file_preview);
     display.set_on_submit(file_or_dir);
 
-    session.add_layer(
-        Dialog::around(display)
-            .title("file explorer")
-            .button("..", parent_dir)
-            .button("quit", |session| session.quit())
-            .padding(cursive::view::Margins::lrtb(6, 6, 6, 6)),
-    );
+//    session.add_layer(
+//        Dialog::around(display)
+//            .title("file explorer")
+//            .button("..", parent_dir)
+//            .button("quit", |session| session.quit())
+//            .padding(cursive::view::Margins::lrtb(6, 6, 6, 6)),
+//    );
+    let display_trim = Dialog::around(display.scrollable())
+        .title("File Explorer")
+        .button("..", parent_dir)
+        .button("Quit", |session| session.quit())
+        .padding(cursive::view::Margins::lrtb(6, 6, 6, 6));
+
+    let mut layout = LinearLayout::new(Orientation::Horizontal);
+    layout.add_child(display_trim);
+    session.add_fullscreen_layer(layout);
 }
 
-fn file_or_dir(session: &mut Cursive, index_from_selection: &usize) -> Result<()> {
+fn file_preview(session: &mut Cursive, index_from_selection: &usize) {
+    let content = get_current_dir();
+    let entry_in_question = match content.get(*index_from_selection) {
+        Some(entry) => entry,
+        None => {
+            eprintln!("unable to get entry from entry vector");
+            return;
+        }
+    };
+
+    let entry_metadata = match entry_in_question.metadata() {
+        Ok(metadata) => metadata,
+        Err(e) => {
+            eprintln!("unable to retrieve metadata from entry: {}", e);
+            return;
+        }
+    };
+
+    if entry_metadata.is_file() {
+        let preview_display = Dialog::around(TextView::new("place_holder"))
+            .title("file preview");
+        if let Some(layout) = session.screen_mut().pop_layer() {
+            if let Ok(mut layout) = layout.downcast::<LinearLayout>() {
+                layout.add_child(preview_display);
+                session.screen_mut().add_layer(layout);
+            }
+        }
+    }
+}
+
+fn file_or_dir(session: &mut Cursive, index_from_submition: &usize) -> Result<()> {
     //I need the entry, I get the index so i can make due
     let content = get_current_dir();
     let entry_in_question = content
-        .get(*index_from_selection)
+        .get(*index_from_submition)
         .context("unable to locate entry")?;
     let entry_metadata = entry_in_question
         .metadata()
