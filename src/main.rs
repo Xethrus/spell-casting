@@ -103,10 +103,9 @@ fn file_preview(session: &mut Cursive, index_from_selection: &usize) {
     };
 
     if entry_metadata.is_file() {
-        let preview_display = Dialog::around(TextView::new("place_holder"))
-            .title("file preview");
-        session.call_on_name("layout", |view: &mut LinearLayout| {
-            view.get_mut().add_child(preview_display)
+        let view = Box::new(TextView::new("place holder"));
+        session.call_on_name("layout",  |layout: &mut LinearLayout| {
+            layout.add_child(view);
         });
     }
 }
