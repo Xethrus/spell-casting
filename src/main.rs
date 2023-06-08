@@ -119,7 +119,7 @@ fn edit_file(session: &mut Cursive, file_path: std::path::PathBuf) {
         .expect("Error: failed to run editor")
         .wait()
         .expect("Error: Editor returned non-zero exit code");
-    display_directory(session)
+    session.quit();
 }
 
 fn parent_dir(session: &mut Cursive) {
