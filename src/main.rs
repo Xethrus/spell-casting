@@ -5,6 +5,7 @@ use cursive::Cursive;
 use cursive::views::LinearLayout;
 use cursive::view::Scrollable;
 use cursive::direction::Orientation;
+use cursive::view::Nameable;
 
 
 use anyhow::{Context, Result};
@@ -77,7 +78,8 @@ fn display_directory(session: &mut Cursive) {
         .button("Quit", |session| session.quit())
         .padding(cursive::view::Margins::lrtb(6, 6, 6, 6));
 
-    let mut layout = LinearLayout::new(Orientation::Horizontal);
+    let mut layout = LinearLayout::new(Orientation::Horizontal)
+        .with_name("layout");
     layout.add_child(display_trim);
     session.add_fullscreen_layer(layout);
 }
@@ -103,12 +105,9 @@ fn file_preview(session: &mut Cursive, index_from_selection: &usize) {
     if entry_metadata.is_file() {
         let preview_display = Dialog::around(TextView::new("place_holder"))
             .title("file preview");
-        if let Some(layout) = session.screen_mut().pop_layer() {
-            if let Ok(mut layout) = layout.downcast::<LinearLayout>() {
-                layout.add_child(preview_display);
-                session.screen_mut().add_layer(layout);
-            }
-        }
+        session.call_on_name("layout", |view: &mut LinearLayout| {
+            view.get_mut().add_child(preview_display)
+        });
     }
 }
 
