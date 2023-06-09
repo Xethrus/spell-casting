@@ -6,6 +6,7 @@ use cursive::views::LinearLayout;
 use cursive::view::Scrollable;
 use cursive::direction::Orientation;
 use cursive::view::Nameable;
+use cursive::view::IntoBoxedView;
 
 
 use anyhow::{Context, Result};
@@ -80,7 +81,7 @@ fn display_directory(session: &mut Cursive) {
 
     let mut layout = LinearLayout::new(Orientation::Horizontal)
         .with_name("layout");
-    layout.add_child(display_trim);
+    layout.get_mut().add_child(display_trim);
     session.add_fullscreen_layer(layout);
 }
 
@@ -103,8 +104,25 @@ fn file_preview(session: &mut Cursive, index_from_selection: &usize) {
     };
 
     if entry_metadata.is_file() {
-        let view = Box::new(TextView::new("place holder"));
+        let content = get_current_dir();
+        let entry = match content.get(*index_from_selection) {
+            Some(entry) => entry,
+            None => {
+                eprintln!("unable to get entry from entry vector");
+                return;
+            }
+        };
+        let file_contents = match read_to_string(entry.path()) {
+            Ok(content) => content,
+            Err(e) => {
+                eprintln!("failed to read file contents to string {}", e);
+                let failed_output = String::from("file failed to be displayed");
+                failed_output
+            }
+        };
+        let view = TextView::new(file_contents);
         session.call_on_name("layout",  |layout: &mut LinearLayout| {
+            layout.remove_child(1);
             layout.add_child(view);
         });
     }
