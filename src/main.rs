@@ -1,13 +1,12 @@
 use cursive::align::HAlign;
-use std::ffi::OsString;
+use cursive::direction::Orientation;
+use cursive::view::IntoBoxedView;
+use cursive::view::Nameable;
+use cursive::view::Scrollable;
+use cursive::views::LinearLayout;
 use cursive::views::{Dialog, SelectView, TextView};
 use cursive::Cursive;
-use cursive::views::LinearLayout;
-use cursive::view::Scrollable;
-use cursive::direction::Orientation;
-use cursive::view::Nameable;
-use cursive::view::IntoBoxedView;
-
+use std::ffi::OsString;
 
 use anyhow::{Context, Result};
 use std::env::set_current_dir;
@@ -54,6 +53,7 @@ fn display_directory(session: &mut Cursive) {
 
     let mut display = SelectView::new().h_align(HAlign::Center);
 
+
     for (i, _partition) in get_current_dir().iter().enumerate() {
         match get_file_name(i) {
             Ok(file_name) => display.add_item(file_name, i),
@@ -66,22 +66,16 @@ fn display_directory(session: &mut Cursive) {
     display.set_on_select(file_preview);
     display.set_on_submit(file_or_dir);
 
-//    session.add_layer(
-//        Dialog::around(display)
-//            .title("file explorer")
-//            .button("..", parent_dir)
-//            .button("quit", |session| session.quit())
-//            .padding(cursive::view::Margins::lrtb(6, 6, 6, 6)),
-//    );
     let display_trim = Dialog::around(display.scrollable())
         .title("File Explorer")
         .button("..", parent_dir)
         .button("Quit", |session| session.quit())
         .padding(cursive::view::Margins::lrtb(6, 6, 6, 6));
 
-    let mut layout = LinearLayout::new(Orientation::Horizontal)
-        .with_name("layout");
-    layout.get_mut().add_child(display_trim);
+    let mut layout = LinearLayout::new(Orientation::Horizontal).with_name("layout");
+    layout.get_mut().add_child(
+        display_trim
+    );
     session.add_fullscreen_layer(layout);
 }
 
@@ -112,6 +106,7 @@ fn file_preview(session: &mut Cursive, index_from_selection: &usize) {
                 return;
             }
         };
+
         let file_contents = match read_to_string(entry.path()) {
             Ok(content) => content,
             Err(e) => {
@@ -120,8 +115,9 @@ fn file_preview(session: &mut Cursive, index_from_selection: &usize) {
                 failed_output
             }
         };
+
         let view = TextView::new(file_contents);
-        session.call_on_name("layout",  |layout: &mut LinearLayout| {
+        session.call_on_name("layout", |layout: &mut LinearLayout| {
             layout.remove_child(1);
             layout.add_child(view);
         });
@@ -166,7 +162,9 @@ fn display_file(session: &mut Cursive, entry: &std::fs::DirEntry) -> Result<()> 
     session.pop_layer();
     session.add_layer(
         Dialog::text(file_contents)
-            .button("edit", move |session| edit_file(session, file_path.to_owned()))
+            .button("edit", move |session| {
+                edit_file(session, file_path.to_owned())
+            })
             .button("exit", display_directory),
     );
     Ok(())
